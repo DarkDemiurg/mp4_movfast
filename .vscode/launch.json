@@ -1,0 +1,16 @@
+{
+    "configurations": [
+        {
+            "name": "Debug executable 'mp4_movfast'",
+            "type": "lldb",
+            "request": "launch",
+            "cargo": {
+                "args": [
+                    "run",
+                    "--bin=mp4_movfast"
+                ]
+            },
+            "args": ["/mnt/sda1/hb/pacs/HardFuckTales.com/"]
+        }
+    ]
+}
