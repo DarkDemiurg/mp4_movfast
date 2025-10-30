@@ -13,6 +13,8 @@ fn mp4_optimize(filename: &Path) -> Result<bool, std::io::Error> {
         ));
     }
 
+    println!("Try optimize file: {}", filename.display());
+
     let new_filename = filename.with_extension("new.mp4");
 
     let output = Command::new("ffmpeg")
@@ -37,12 +39,20 @@ fn mp4_optimize(filename: &Path) -> Result<bool, std::io::Error> {
                 );
                 match fs::rename(&new_filename, filename) {
                     Ok(_) => {
-                        println!("      New file renamed successfully: {}", new_filename.display());
+                        println!(
+                            "      New file renamed successfully: {}",
+                            new_filename.display()
+                        );
                         Ok(true)
                     }
                     Err(e) => {
-                        eprintln!("Error renaming file {} to {}: {}", new_filename.display(), filename.display(), e);
-                        Err(e)                        
+                        eprintln!(
+                            "Error renaming file {} to {}: {}",
+                            new_filename.display(),
+                            filename.display(),
+                            e
+                        );
+                        Err(e)
                     }
                 }
             }
@@ -57,7 +67,7 @@ fn mp4_optimize(filename: &Path) -> Result<bool, std::io::Error> {
 
         Err(io::Error::new(
             ErrorKind::Other,
-            format!("FFmpeg failed with error: {}", stderr)
+            format!("FFmpeg failed with error: {}", stderr),
         ))
     }
 }
@@ -83,36 +93,54 @@ fn main() -> ExitCode {
         return ExitCode::from(2);
     }
 
-    match fs::read_dir(work_path) {
-        Ok(entries) => {
-            for entry_result in entries {
-                match entry_result {
-                    Ok(entry) => {
-                        let path = entry.path();
-                        if path.is_file() && path.extension().unwrap_or_default() == "mp4" {
-                            println!("Try optimize file: {}", path.display());
-                            match mp4_optimize(&path) {
-                                Ok(_) => {
-                                    println!("File optimized successfully: {}", path.display())
-                                }
-                                Err(e) => {
-                                    eprintln!("Error optimize file {}: {}", path.display(), e)
-                                }
-                            }
-                        }
-                        if path.is_dir() {
-                            println!("Sub dir found: {}", path.display());
-                        }
-                    }
-                    Err(e) => eprintln!("Error reading directory entry: {}", e),
+    if work_path.is_file() {
+        if work_path.extension().unwrap_or_default() == "mp4" {
+            match mp4_optimize(&work_path) {
+                Ok(_) => {
+                    println!("File optimized successfully: {}", work_path.display());
+                    return ExitCode::SUCCESS;
+                }
+                Err(e) => {
+                    eprintln!("Error optimize file {}: {}", work_path.display(), e);
+                    return ExitCode::from(3);
                 }
             }
-        }
-        Err(e) => {
-            eprintln!("Error reading directory: {}", e);
+        } else {
+            eprintln!("Only MP4 file supported");
             return ExitCode::from(2);
         }
     }
 
+    if work_path.is_dir() {
+        match fs::read_dir(work_path) {
+            Ok(entries) => {
+                for entry_result in entries {
+                    match entry_result {
+                        Ok(entry) => {
+                            let path = entry.path();
+                            if path.is_file() && path.extension().unwrap_or_default() == "mp4" {
+                                match mp4_optimize(&path) {
+                                    Ok(_) => {
+                                        println!("File optimized successfully: {}", path.display())
+                                    }
+                                    Err(e) => {
+                                        eprintln!("Error optimize file {}: {}", path.display(), e)
+                                    }
+                                }
+                            }
+                            if path.is_dir() {
+                                println!("Sub dir found: {}", path.display());
+                            }
+                        }
+                        Err(e) => eprintln!("Error reading directory entry: {}", e),
+                    }
+                }
+            }
+            Err(e) => {
+                eprintln!("Error reading directory: {}", e);
+                return ExitCode::from(2);
+            }
+        }
+    }
     return ExitCode::SUCCESS;
 }
