@@ -108,25 +108,43 @@ fn main() -> ExitCode {
 
     let pattern = work_path.to_string_lossy() + "**/*.mp4";
 
+    let mut i: usize = 0;
+    let files_count = match glob(&pattern) {
+        Ok(paths) => paths.into_iter().collect::<Vec<_>>().len(),
+        Err(e) => {
+            eprintln!("Error reading glob directory: {}", e);
+            return ExitCode::from(2);
+        }
+    };
+
     for entry in glob(&pattern).expect("Failed to read glob pattern") {
         match entry {
             Ok(path) => {
                 if path.is_file() && path.extension().unwrap_or_default() == "mp4" {
+                    i += 1;
                     match mp4_optimize(&path) {
                         Ok(_) => {
-                            println!("File optimized successfully: {}", path.display())
+                            println!(
+                                "[{:0>3}/{:0>3}] File optimized successfully: {}",
+                                i,
+                                files_count,
+                                path.display()
+                            )
                         }
                         Err(e) => {
-                            eprintln!("Error optimize file {}: {}", path.display(), e)
+                            eprintln!(
+                                "[{:0>3}/{:0>3}] Error optimize file {}: {}",
+                                i,
+                                files_count,
+                                path.display(),
+                                e
+                            )
                         }
                     }
                 }
-                if path.is_dir() {
-                    println!("Sub dir found: {}", path.display());
-                }
             }
             Err(e) => {
-                eprintln!("Error reading directory: {}", e);
+                eprintln!("Error reading glob directory: {}", e);
                 return ExitCode::from(2);
             }
         }
