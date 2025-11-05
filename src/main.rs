@@ -106,7 +106,9 @@ fn main() -> ExitCode {
         return ExitCode::from(3);
     }
 
-    let pattern = work_path.to_string_lossy() + "**/*.mp4";
+    let work_path = work_path.join("**").join("*.mp4");
+
+    let pattern = work_path.to_string_lossy();
 
     let mut i: usize = 0;
     let files_count = match glob(&pattern) {
